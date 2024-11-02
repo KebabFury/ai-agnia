@@ -6,9 +6,8 @@ import importlib.util
 import shutil
 import zipfile
 
-from team_actions.src.settings import settings
+from team_actions.src.settings import settings, core_service_settings
 from team_actions.src.systems_config import systems_info, available_actions
-
 
 def collect_systems_documentation() -> Dict[str, str]:
     actions_directory: str = os.path.join(settings.root_directory, "actions")
@@ -32,6 +31,9 @@ def collect_systems_documentation() -> Dict[str, str]:
                     system_documentation: str = doc_file.read()
                 systems_documentation[current_dir_name] = system_documentation
 
+    custom_documentations = collect_custom_providers_documentation()
+    systems_documentation.update(custom_documentations)
+
     registration_data: Dict[str, str] = {
         "team_id": settings.team_id,
         "actions_info": available_actions,
@@ -50,6 +52,19 @@ def collect_systems_documentation() -> Dict[str, str]:
         print(f"Failed to register systems and actions: {response.status_code}")
 
     return systems_documentation
+
+def collect_custom_providers_documentation() -> Dict[str, str]:
+    response = requests.get(url=f"{core_service_settings.base_api_url}/{core_service_settings.list_docs_url}")
+    response.raise_for_status()
+
+    data = response.json()
+    for doc in data:
+        spec = importlib.util.spec_from_loader(doc["name"], loader=None)
+        module = importlib.util.module_from_spec(spec)
+        exec(doc["actionCode"], module.__dict__)
+
+    custom_providers_documentations = { doc["name"]: doc["documentation"] for doc in data }
+    return custom_providers_documentations
 
 
 def check_user_settings() -> None:
