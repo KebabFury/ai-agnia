@@ -32,8 +32,7 @@ def infer_system_name(func: Callable[..., Any]) -> str:
 
     # Extract the parent directory (system name) from the path
     system_name = os.path.basename(os.path.dirname(file_path))
-    return system_name
-
+    return system_name  
 
 def register_action(
     system_type: str,
@@ -41,6 +40,8 @@ def register_action(
     signature: str,
     arguments: List[str],
     description: str,
+    sys_name: str = None,
+    sys_specific_description: str = None
 ):
     """Decorator for logging the operation of a component."""
 
@@ -48,7 +49,8 @@ def register_action(
 
         from team_actions.src.systems_config import available_actions, systems_info
 
-        system_name: str = infer_system_name(func)
+        print(system_type, sys_name, sys_specific_description)
+        system_name: str = sys_name or infer_system_name(func)
 
         try:
             action_name = func.__name__
@@ -56,13 +58,20 @@ def register_action(
             raise Exception(
                 f"Seems function '{func}' doesn't have a name, so can't be registered"
             )
-        try:
-            system_specific_description: str = systems_info[system_type]["systems"][
-                system_name
-            ]
-        except KeyError:
-            print(f"System {system_name} not found in systems_info")
-            system_specific_description: str = ""
+        
+        print(f"--registering system: **{system_name}** | action:  **{action_name}** in process")
+
+        system_specific_description: str = ""
+        if (sys_specific_description):
+            system_specific_description = sys_specific_description
+        else:
+            try:
+                system_specific_description = systems_info[system_type]["systems"][
+                    system_name
+                ]
+            except KeyError:
+                print(f"System {system_name} not found in systems_info")
+                system_specific_description: str = ""
 
         action_info: Dict[str, Any] = {
             system_type: {
@@ -104,9 +113,9 @@ def register_action(
                     f"Error in action for system '{system_name}' with action '{action_name}'"
                 ) from e
 
-        ActionRouter.register_new_action_function(
-            system_name=system_name, function_name=action_name, action_func=wrapper
-        )
+        # ActionRouter.register_new_action_function(
+        #     system_name=system_name, function_name=action_name, action_func=wrapper
+        # )
         return wrapper
 
     return decorator

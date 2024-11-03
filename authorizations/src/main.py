@@ -1,3 +1,5 @@
+import importlib
+import importlib.util
 from fastapi import FastAPI
 from fastapi import HTTPException
 
@@ -24,7 +26,7 @@ app = FastAPI()
 def authorize_in_todoist():
     core_authorize_endpoint_url = f"{core_service_settings.base_api_url}/{core_service_settings.todoist_authorize_url}"
     response = requests.get(core_authorize_endpoint_url)
-    return {"url": response.content}
+    return response.json()
 
 @app.get("/todoist/get-token")
 def get_todoist_token(
@@ -33,7 +35,78 @@ def get_todoist_token(
     error: str = None,
 ):
     core_get_token_url = f"{core_service_settings.base_api_url}/{core_service_settings.todoist_get_token_url}"
-    return requests.get(core_get_token_url, code, state, error)
+    query_params = []
+    if code is not None:
+        query_params.append(f"code={code}")
+    if state is not None:
+        query_params.append(f"state={state}")
+    if error is not None:
+        query_params.append(f"error={error}")
+
+    if query_params:
+        core_get_token_url += "?" + "&".join(query_params)
+    response = requests.get(core_get_token_url)
+    print(response.json())
+    print(response.content)
+    return response.json()
+
+@app.get("/{system_name}/authorize")
+def authorize_in_custom_system(system_name: str):
+    core_authorize_endpoint_url = f"{core_service_settings.base_api_url}/provider/{system_name}/authorize"
+    response = requests.get(core_authorize_endpoint_url)
+    print(response.json())
+    return response.json()
+
+@app.get("/{system_name}/get-token")
+def get_token_for_custom_system(system_name: str, code: str = None, state: str = None, error: str = None):
+    core_get_token_endpoint_url = f"{core_service_settings.base_api_url}/provider/{system_name}/get-token"
+    response = requests.get(core_get_token_endpoint_url)
+    print(response.json())
+    return response.json()
+
+
+@app.get("/list-docs")
+def list_docs():
+    list_docs_url = f"{core_service_settings.base_api_url}/{core_service_settings.list_docs_url}"
+    print(list_docs_url)
+    response = requests.get(list_docs_url)
+    return response.json()
+
+@app.get("/test_initial_setup")
+def test_initial_setup():
+    list_docs_url = f"{core_service_settings.base_api_url}/{core_service_settings.list_docs_url}"
+    response = requests.get(list_docs_url)
+    print(list_docs_url)
+    data = response.json()
+    print(data)
+    for doc in data:
+        name = doc.get("name")
+        print(name)
+        spec = importlib.util.spec_from_loader(name, loader=None)
+        print(spec)
+        module = importlib.util.module_from_spec(spec)
+        print(module)
+        action_code = doc.get("actionCode").replace("\\", "\\\\")
+
+        try:
+            exec(action_code, module.__dict__)
+            print("exec is finished")
+        except Exception as ex:
+            print("catched error")
+            print(ex)
+    
+    if hasattr(module, "placeOrder"):
+        print(f"Method 'placeOrder' is available in the module.")
+    else:
+        print(f"Method 'placeOrder' is NOT found in the module.")
+    return data
+
+
+@app.get("/test-authorize")
+def test_authorize():
+    core_authorize_endpoint_url = f"{core_service_settings.base_api_url}/{core_service_settings.todoist_authorize_url}"
+    response = requests.get(core_authorize_endpoint_url)
+    return response.json()
 
 # @app.get("/todoist/authorize")
 # def authorize_in_todoist():

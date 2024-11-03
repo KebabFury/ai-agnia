@@ -16,9 +16,10 @@ class TodoistAuthSettings(BaseSettings):
     todoist_client_secret: str = "d7be3872056e4bbab047abf9f316e583"
 
 class CoreServiceSettings(BaseSettings):
-    base_api_url: str = "http://localhost:5004"
+    base_api_url: str = "http://91.197.98.50:5243"
     todoist_authorize_url: str = "todoist/authorize"
     todoist_get_token_url: str = "todoist/get-token"
+    list_docs_url: str = "provider/list-docs"
 
 
 base_hackathon_settings = BaseHackathonSettings()
