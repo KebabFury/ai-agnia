@@ -113,9 +113,9 @@ def register_action(
                     f"Error in action for system '{system_name}' with action '{action_name}'"
                 ) from e
 
-        # ActionRouter.register_new_action_function(
-        #     system_name=system_name, function_name=action_name, action_func=wrapper
-        # )
+        ActionRouter.register_new_action_function(
+            system_name=system_name, function_name=action_name, action_func=wrapper
+        )
         return wrapper
 
     return decorator
