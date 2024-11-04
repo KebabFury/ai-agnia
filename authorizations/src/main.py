@@ -1,26 +1,13 @@
-import importlib
-import importlib.util
 from fastapi import FastAPI
-from fastapi import HTTPException
 
-from authorizations.src.authorization_services import todoist
-from authorizations.src.hackathon_utils import (
-    save_authorization_data_and_return_response,
-)
-from authorizations.src.settings import base_hackathon_settings, todoist_auth_settings, core_service_settings
+from authorizations.src.settings import base_hackathon_settings, core_service_settings
 import requests
 
 app = FastAPI()
 
-# assert (
-#     base_hackathon_settings.user_token_from_tg_bot != ""
-# ), "Укажите Telegram токен в settings.py"
-# assert (
-#     todoist_auth_settings.todoist_client_id != ""
-# ), "Укажите Todoist Client ID в settings.py"
-# assert (
-#     todoist_auth_settings.todoist_client_secret != ""
-# ), "Укажите Todoist Client Secret в settings.py"
+assert (
+    base_hackathon_settings.user_token_from_tg_bot != ""
+), "Укажите Telegram токен в settings.py"
 
 @app.get("/todoist/authorize")
 def authorize_in_todoist():
@@ -58,8 +45,16 @@ def authorize_in_custom_system(system_name: str):
     return response.json()
 
 @app.get("/{system_name}/get-token")
-def get_token_for_custom_system(system_name: str, code: str = None, state: str = None, error: str = None):
+def get_token_for_custom_system(system_name: str, code: str = None, error: str = None):
     core_get_token_endpoint_url = f"{core_service_settings.base_api_url}/provider/{system_name}/get-token"
+    query_params = []
+    if code is not None:
+        query_params.append(f"code={code}")
+    if error is not None:
+        query_params.append(f"error={error}")
+
+    if query_params:
+        core_get_token_endpoint_url += "?" + "&".join(query_params)
     response = requests.get(core_get_token_endpoint_url)
     print(response.json())
     return response.json()
@@ -72,41 +67,13 @@ def list_docs():
     response = requests.get(list_docs_url)
     return response.json()
 
-@app.get("/test_initial_setup")
-def test_initial_setup():
+@app.get("/create-files")
+def create_files():
     list_docs_url = f"{core_service_settings.base_api_url}/{core_service_settings.list_docs_url}"
     response = requests.get(list_docs_url)
-    print(list_docs_url)
     data = response.json()
-    print(data)
-    for doc in data:
-        name = doc.get("name")
-        print(name)
-        spec = importlib.util.spec_from_loader(name, loader=None)
-        print(spec)
-        module = importlib.util.module_from_spec(spec)
-        print(module)
-        action_code = doc.get("actionCode").replace("\\", "\\\\")
 
-        try:
-            exec(action_code, module.__dict__)
-            print("exec is finished")
-        except Exception as ex:
-            print("catched error")
-            print(ex)
     
-    if hasattr(module, "placeOrder"):
-        print(f"Method 'placeOrder' is available in the module.")
-    else:
-        print(f"Method 'placeOrder' is NOT found in the module.")
-    return data
-
-
-@app.get("/test-authorize")
-def test_authorize():
-    core_authorize_endpoint_url = f"{core_service_settings.base_api_url}/{core_service_settings.todoist_authorize_url}"
-    response = requests.get(core_authorize_endpoint_url)
-    return response.json()
 
 # @app.get("/todoist/authorize")
 # def authorize_in_todoist():

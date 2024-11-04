@@ -49,7 +49,6 @@ def register_action(
 
         from team_actions.src.systems_config import available_actions, systems_info
 
-        print(system_type, sys_name, sys_specific_description)
         system_name: str = sys_name or infer_system_name(func)
 
         try:

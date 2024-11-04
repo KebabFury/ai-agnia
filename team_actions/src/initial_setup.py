@@ -8,6 +8,7 @@ import zipfile
 
 from team_actions.src.settings import settings, core_service_settings
 from team_actions.src.systems_config import systems_info, available_actions
+from team_actions.src.utils.action_router import ActionRouter
 
 def collect_systems_documentation() -> Dict[str, str]:
     actions_directory: str = os.path.join(settings.root_directory, "actions")
@@ -58,10 +59,18 @@ def collect_custom_providers_documentation() -> Dict[str, str]:
     response.raise_for_status()
 
     data = response.json()
+
     for doc in data:
-        spec = importlib.util.spec_from_loader(doc["name"], loader=None)
+        name = doc.get("name")
+        spec = importlib.util.spec_from_loader(name, loader=None)
         module = importlib.util.module_from_spec(spec)
-        exec(doc["actionCode"], module.__dict__)
+        action_code = doc.get("actionCode").replace("\\", "\\\\")
+
+        try:
+            exec(action_code, module.__dict__)
+            ActionRouter.add_actions_for_module(module)
+        except Exception as ex:
+            print("Error trying create module", ex)
 
     custom_providers_documentations = { doc["name"]: doc["documentation"] for doc in data }
     return custom_providers_documentations
@@ -110,8 +119,10 @@ def upload_zip(zip_file_path: str):
 def main() -> None:
     check_user_settings()
     collect_systems_documentation()
-    zip_file_path = create_zip_archive()
-    upload_zip(zip_file_path)
+    print("collection finished-----------------------------------")
+    #zip_file_path = create_zip_archive()
+    print("zip-createdd-------------------------")
+    #upload_zip(zip_file_path)
 
 
 if __name__ == "__main__":

@@ -17,6 +17,11 @@ systems_info: Dict[str, Any] = {
             "GitFlame": "GitFlame is a version control and collaboration tool that integrates Git repositories with task management.",
         },
     },
+    "custom_system": {
+        "description": "Tracks code changes, versions, and issues (e.g., GitHub, GitFlame).",
+        "systems": {
+        },
+    },
 }
 
 available_actions: Dict[str, Any] = fetch_available_actions()
